@@ -152,6 +152,15 @@ impl eframe::App for DarkRemoteApp {
                         }
                     }
 
+                    if ui.button("Sinon secure").clicked() {
+                        let res = Connection::new("wss://dark-remote.sinon.fbk.red/ws");
+
+                        match res {
+                            Ok(conn) => self.connection = Some(conn),
+                            Err(err) => self.message = format!("Failed to connect: {err}"),
+                        }
+                    }
+
                     for page in &self.config.pages {
                         if ui.button(&page.name).clicked() {
                             self.current_page = page.name.clone();
