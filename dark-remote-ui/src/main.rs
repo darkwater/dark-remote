@@ -20,7 +20,7 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "eframe template",
         native_options,
-        Box::new(|cc| Ok(Box::new(dark_remote_ui::TemplateApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(dark_remote_ui::DarkRemoteApp::new(cc)))),
     )
 }
 
@@ -50,7 +50,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(dark_remote_ui::TemplateApp::new(cc)))),
+                Box::new(|cc| Ok(Box::new(dark_remote_ui::DarkRemoteApp::new(cc)))),
             )
             .await;
 

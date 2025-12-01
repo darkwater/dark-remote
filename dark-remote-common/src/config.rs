@@ -36,9 +36,14 @@ pub struct ConfigButton {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum RemoteCommand {
-    TrackpadMove { delta_x: f32, delta_y: f32 },
+    TrackpadMove { delta_x: i32, delta_y: i32 },
     TrackpadClick { button: TrackpadButton },
-    TrackpadScroll { delta_x: f32, delta_y: f32 },
+    TrackpadScroll { delta_x: i32, delta_y: i32 },
+
+    CecImageViewOn,
+    CecActiveSourceSelf,
+    CecActiveSource { physical_address: [u8; 4] },
+    CecStandby,
 
     MpdPlayPause,
     MpdNext,
