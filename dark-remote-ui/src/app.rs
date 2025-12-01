@@ -125,132 +125,145 @@ impl eframe::App for DarkRemoteApp {
             };
         });
 
-        TopBottomPanel::bottom("page selection").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.add_space(30.);
+        let mut frame = Frame::side_top_panel(&ctx.style());
+        frame.inner_margin.bottom += 20;
 
-                if ui.button("Connect").clicked() {
-                    let res = Connection::new("ws://tetsuya.fbk.red:3000/ws");
-
-                    match res {
-                        Ok(conn) => self.connection = Some(conn),
-                        Err(err) => self.message = format!("Failed to connect: {err}"),
-                    }
-                }
-
-                for page in &self.config.pages {
-                    if ui.button(&page.name).clicked() {
-                        self.current_page = page.name.clone();
-                    }
-                }
-
-                if let Some(msg) = self.connection.as_mut().and_then(|c| c.check_msg()) {
-                    self.message = msg;
-                }
-
-                ui.label(&self.message);
-            });
-        });
-
-        CentralPanel::default()
-            .frame(Frame::central_panel(&ctx.style()).inner_margin(0.))
+        TopBottomPanel::bottom("page selection")
+            .frame(frame)
             .show(ctx, |ui| {
-                all_widget_visuals(ui.style_mut(), |v| {
-                    v.corner_radius = 16.0.into();
+                ui.horizontal(|ui| {
+                    ui.add_space(30.);
+
+                    if ui.button("Tetsuya").clicked() {
+                        let res = Connection::new("ws://tetsuya.fbk.red:3000/ws");
+
+                        match res {
+                            Ok(conn) => self.connection = Some(conn),
+                            Err(err) => self.message = format!("Failed to connect: {err}"),
+                        }
+                    }
+
+                    if ui.button("Sinon").clicked() {
+                        let res = Connection::new("ws://sinon.fbk.red:3000/ws");
+
+                        match res {
+                            Ok(conn) => self.connection = Some(conn),
+                            Err(err) => self.message = format!("Failed to connect: {err}"),
+                        }
+                    }
+
+                    for page in &self.config.pages {
+                        if ui.button(&page.name).clicked() {
+                            self.current_page = page.name.clone();
+                        }
+                    }
+
+                    if let Some(msg) = self.connection.as_mut().and_then(|c| c.check_msg()) {
+                        self.message = msg;
+                    }
+
+                    ui.label(&self.message);
                 });
+            });
 
-                let Some(config_page) = self
-                    .config
-                    .pages
-                    .iter()
-                    .find(|p| p.name == self.current_page)
-                else {
-                    ui.label("No page selected");
-                    return;
-                };
+        let mut frame = Frame::central_panel(&ctx.style()).inner_margin(0);
+        frame.inner_margin.top += 50;
 
-                let ConfigPageLayout::Linear { panels } = &config_page.layout;
+        CentralPanel::default().frame(frame).show(ctx, |ui| {
+            all_widget_visuals(ui.style_mut(), |v| {
+                v.corner_radius = 16.0.into();
+            });
 
-                ui.with_layout(Layout::top_down(egui::Align::Center), |ui| {
-                    let weight_sum: f32 = panels.iter().map(|(weight, _)| *weight as f32).sum();
+            let Some(config_page) = self
+                .config
+                .pages
+                .iter()
+                .find(|p| p.name == self.current_page)
+            else {
+                ui.label("No page selected");
+                return;
+            };
 
-                    let total_height = ui.available_height();
+            let ConfigPageLayout::Linear { panels } = &config_page.layout;
 
-                    for &(weight, ref panel) in panels {
-                        let height = total_height * (weight as f32) / weight_sum;
+            ui.with_layout(Layout::top_down(egui::Align::Center), |ui| {
+                let weight_sum: f32 = panels.iter().map(|(weight, _)| *weight as f32).sum();
 
-                        let rect = ui.available_rect_before_wrap();
-                        let rect = rect.split_top_bottom_at_y(rect.top() + height).0;
+                let total_height = ui.available_height();
 
-                        let res = {
-                            ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
-                                match panel {
-                                    ConfigPanel::Trackpad => {
-                                        let rect = ui.available_rect_before_wrap().shrink(10.);
+                for &(weight, ref panel) in panels {
+                    let height = total_height * (weight as f32) / weight_sum;
 
-                                        let response =
-                                            ui.allocate_rect(rect, Sense::click_and_drag());
+                    let rect = ui.available_rect_before_wrap();
+                    let rect = rect.split_top_bottom_at_y(rect.top() + height).0;
 
-                                        ui.painter().rect_filled(
-                                            rect,
-                                            50.,
-                                            ui.visuals().widgets.noninteractive.bg_fill,
-                                        );
-                                        if let Some(conn) = &mut self.connection {
-                                            let delta = response.drag_delta();
-                                            if delta != Vec2::ZERO {
-                                                let sensitivity =
-                                                    (delta.length() / 10.).clamp(1., 5.);
+                    let res = {
+                        ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
+                            match panel {
+                                ConfigPanel::Trackpad => {
+                                    let rect = ui.available_rect_before_wrap().shrink(10.);
 
-                                                conn.send(RemoteCommand::TrackpadMove {
-                                                    delta_x: (delta.x * sensitivity).round() as i32,
-                                                    delta_y: (delta.y * sensitivity).round() as i32,
-                                                });
-                                            }
+                                    let response = ui.allocate_rect(rect, Sense::click_and_drag());
 
-                                            if response.clicked() {
-                                                conn.send(RemoteCommand::TrackpadClick {
-                                                    button: TrackpadButton::Left,
-                                                });
-                                            }
+                                    ui.painter().rect_filled(
+                                        rect,
+                                        50.,
+                                        ui.visuals().widgets.noninteractive.bg_fill,
+                                    );
+                                    if let Some(conn) = &mut self.connection {
+                                        let delta = response.drag_delta();
+                                        if delta != Vec2::ZERO {
+                                            let sensitivity = (delta.length() / 10.).clamp(1., 5.);
 
-                                            if response.long_touched() {
-                                                conn.send(RemoteCommand::TrackpadClick {
-                                                    button: TrackpadButton::Right,
-                                                });
-                                            }
+                                            conn.send(RemoteCommand::TrackpadMove {
+                                                delta_x: (delta.x * sensitivity).round() as i32,
+                                                delta_y: (delta.y * sensitivity).round() as i32,
+                                            });
+                                        }
+
+                                        if response.clicked() {
+                                            conn.send(RemoteCommand::TrackpadClick {
+                                                button: TrackpadButton::Left,
+                                            });
+                                        }
+
+                                        if response.long_touched() {
+                                            conn.send(RemoteCommand::TrackpadClick {
+                                                button: TrackpadButton::Right,
+                                            });
                                         }
                                     }
-                                    ConfigPanel::ButtonGrid { rows } => {
-                                        SplitEqual::vertical().iterate(ui, rows, |ui, buttons| {
-                                            SplitEqual::horizontal().iterate(
-                                                ui,
-                                                buttons,
-                                                |ui, button| {
-                                                    let res = ui.place(
-                                                        ui.available_rect_before_wrap().shrink(8.),
-                                                        egui::Button::new(&button.label),
-                                                    );
-
-                                                    if let Some(conn) = &mut self.connection
-                                                        && res.clicked()
-                                                    {
-                                                        conn.send(button.command);
-                                                    }
-                                                },
-                                            );
-                                        });
-                                    }
                                 }
+                                ConfigPanel::ButtonGrid { rows } => {
+                                    SplitEqual::vertical().iterate(ui, rows, |ui, buttons| {
+                                        SplitEqual::horizontal().iterate(
+                                            ui,
+                                            buttons,
+                                            |ui, button| {
+                                                let res = ui.place(
+                                                    ui.available_rect_before_wrap().shrink(8.),
+                                                    egui::Button::new(&button.label),
+                                                );
 
-                                ui.take_available_space();
-                            })
-                        };
+                                                if let Some(conn) = &mut self.connection
+                                                    && res.clicked()
+                                                {
+                                                    conn.send(button.command);
+                                                }
+                                            },
+                                        );
+                                    });
+                                }
+                            }
 
-                        ui.advance_cursor_after_rect(res.response.rect);
-                    }
-                });
+                            ui.take_available_space();
+                        })
+                    };
+
+                    ui.advance_cursor_after_rect(res.response.rect);
+                }
             });
+        });
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {

@@ -4,6 +4,12 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 all-features = true
 targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
@@ -15,40 +21,42 @@ ewebsock   = { version = "0.8.0", features = ["tls"] }
 log        = "0.4.27"
 serde_json = "1.0.145"
 
-egui = "0.33.0"
-eframe = { version = "0.33.0", default-features = false, features = [
-    # "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
+egui = "0.33.2"
+
+serde = { version = "1.0.219", features = ["derive"] }
+
+# desktop:
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "android")))'.dependencies]
+env_logger = "0.11.8"
+
+eframe = { version = "0.33.2", default-features = false, features = [
     "default_fonts", # Embed the default egui fonts.
-    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+    "glow",          # Use glow for rendering on desktop.
     "persistence",   # Enable restoring app state when restarting the app.
     "wayland",       # To support Linux (and CI)
     "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
 
-serde = { version = "1.0.219", features = ["derive"] }
-
-# native:
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-env_logger = "0.11.8"
-
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4.50"
-web-sys = "0.3.70"              # to access the DOM (to hide the loading text)
+web-sys              = "0.3.70"
 
-# [patch.crates-io]
+eframe = { version = "0.33.2", default-features = false, features = [
+    "default_fonts", # Embed the default egui fonts.
+    "persistence",   # Enable restoring app state when restarting the app.
+    "glow",          # Use glow for rendering on the web.
+] }
 
-# If you want to use the bleeding edge version of egui and eframe:
-# egui = { git = "https://github.com/emilk/egui", branch = "main" }
-# eframe = { git = "https://github.com/emilk/egui", branch = "main" }
+# android:
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.15.1"
+wgpu           = { version = "27.0.1", default-features = false, features = ["gles"] }
+egui-winit     = { version = "0.33.2", default-features = false, features = ["clipboard", "links"] }
 
-# If you fork https://github.com/emilk/egui you can test with:
-# egui = { path = "../egui/crates/egui" }
-# eframe = { path = "../egui/crates/eframe" }
-
-
-# ----------------------------------------------------------------------------------------
-# Lints:
-
-[lints]
-workspace = true
+eframe = { version = "0.33.2", default-features = false, features = [
+    "default_fonts", # Embed the default egui fonts.
+    "wgpu",          # Use wgpu for rendering on Android.
+    "persistence",   # Enable restoring app state when restarting the app.
+    "android-native-activity",
+] }

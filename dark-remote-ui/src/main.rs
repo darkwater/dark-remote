@@ -18,7 +18,7 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     eframe::run_native(
-        "eframe template",
+        "dark remote",
         native_options,
         Box::new(|cc| Ok(Box::new(dark_remote_ui::DarkRemoteApp::new(cc)))),
     )
