@@ -2,6 +2,10 @@
 
 like the iOS apple tv remote app but for linux and actually useful and customizable
 
+<img width="590" height="1280" alt="image" src="https://github.com/user-attachments/assets/b097d421-a3d3-4b36-b946-d44c26b4e767" />
+
+still cooking
+
 more docs later probably but i'm just gonna tell you how hdmi-cec works
 
 ## HDMI-CEC
